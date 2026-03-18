@@ -13,6 +13,7 @@ public class LockData {
     public LockData() {
         this.isLocked = false;
         this.lockType = "";
+        this.lockId = UUID.randomUUID();
     }
 
     //NBT存放和读取

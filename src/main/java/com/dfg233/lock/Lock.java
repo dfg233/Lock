@@ -1,7 +1,8 @@
 package com.dfg233.lock;
 
-import com.dfg233.lock.item.registry.ModCreativeModeTabs;
-import com.dfg233.lock.item.registry.ModItems;
+import com.dfg233.lock.block.ModBlocks;
+import com.dfg233.lock.item.ModCreativeModeTabs;
+import com.dfg233.lock.item.ModItems;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.block.Blocks;
@@ -35,6 +36,7 @@ public class Lock {
         modEventBus.addListener(this::commonSetup);
         ModItems.register(modEventBus);
         ModCreativeModeTabs.register(modEventBus);
+        ModBlocks.register(modEventBus);
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);

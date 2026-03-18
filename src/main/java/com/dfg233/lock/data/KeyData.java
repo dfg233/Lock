@@ -19,6 +19,6 @@ public class KeyData {
         tag.putUUID("keyId", keyId);
     }
     public void readFromNBT(CompoundTag tag) {
-        this.keyId = tag.getUUID("keyId");
+        this.keyId = tag.hasUUID("keyId") ? tag.getUUID("keyId") : null;
     }
 }

@@ -3,15 +3,17 @@ package com.dfg233.lock.item;
 import com.dfg233.lock.data.KeyData;
 import com.dfg233.lock.data.LockData;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-
-import java.util.Properties;
 
 public abstract class AbstractLock {
     private LockData lockData;
-    public AbstractLock(Properties properties) {
+
+    //构造函数
+    public AbstractLock() {
         this.lockData = new LockData();
     }
 
@@ -30,13 +32,21 @@ public abstract class AbstractLock {
     protected void onStateChanged(boolean locked) {
     }
 
-    public abstract boolean handleInteraction(Player player, KeyData keyData, Level level, BlockPos pos);
+    //处理锁的交互
+    public abstract boolean handleInteraction(Player player, KeyData keyData, Level level, BlockPos pos, Direction face, ItemStack item);
 
-    //保存和加载锁的数据
+    //保存锁的数据
     public void save(CompoundTag tag) {
         this.lockData.writeToNBT(tag);
     }
+
+    //加载锁的数据
     public void load(CompoundTag tag) {
         this.lockData.readFromNBT(tag);
+    }
+
+    //获取锁的数据
+    public LockData getLockData() {
+        return lockData;
     }
 }

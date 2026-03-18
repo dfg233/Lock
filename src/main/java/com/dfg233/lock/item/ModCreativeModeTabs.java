@@ -1,4 +1,4 @@
-package com.dfg233.lock.item.registry;
+package com.dfg233.lock.item;
 
 import com.dfg233.lock.Lock;
 import net.minecraft.core.registries.Registries;
@@ -15,11 +15,9 @@ public class ModCreativeModeTabs {
 
     public static final RegistryObject<CreativeModeTab> TEST_MOD_TAB =
             CREATIVE_MODE_TABS.register("lock_tab",() -> CreativeModeTab.builder()
-                    .icon(() -> new ItemStack(ModItems.ICON.get()))
+                    .icon(() -> new ItemStack(ModItems.MECHANICAL_KEY.get()))
                     .title(Component.translatable("lock_tab"))
                     .displayItems((pParameters,pOutput) ->{
-                        pOutput.accept(ModItems.ICON.get());
-                        pOutput.accept(ModItems.MECHANICAL_LOCK.get());
                     }).build());
 
     public static void register(IEventBus eventBus) {

@@ -1,4 +1,4 @@
-package com.dfg233.lock.item.registry.custom;
+package com.dfg233.lock.item.custom.lock;
 
 import net.minecraft.world.item.Item;
 
