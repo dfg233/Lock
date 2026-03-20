@@ -3,5 +3,9 @@
   "item.lock.mechanical_key": "Mechanical Key",
   "item.lock.mechanical_lock": "Mechanical Lock",
 
-  "lock_tab": "Lock"
+  "item_group.lock_tab": "Lock",
+  "item_group.key_tab": "Key",
+
+  "message.lock.success": "Set lock successfully!",
+  "message.lock.already_locked": "Block has been locked!"
 }

@@ -13,7 +13,7 @@ public class LockData {
     public LockData() {
         this.isLocked = false;
         this.lockType = "";
-        this.lockId = UUID.randomUUID();
+        this.lockId = null;
     }
 
     //NBT存放和读取
@@ -27,9 +27,9 @@ public class LockData {
     }
 
     public void readFromNBT(CompoundTag tag) {
-        this.isLocked = tag.getBoolean("isLocked");
+        this .isLocked = tag.getBoolean("isLocked");
         this.lockType = tag.getString("lockType");
-        this.lockId = tag.hasUUID("lockId") ? tag.getUUID("lockId") : UUID.randomUUID();
+        this.lockId = tag.hasUUID("lockId") ? tag.getUUID("lockId") : null;
         this.keyData = tag.getCompound("keyData");
     }
 

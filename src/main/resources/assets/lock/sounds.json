@@ -1,0 +1,9 @@
+{
+  "lock_fail": {
+    "category": "block",
+    "subtitle": "subtitles.lock.lock_fail",
+    "sounds": [
+      "lock:lock_fail"
+    ]
+  }
+}
