@@ -25,29 +25,29 @@ public class ModEvents {
      */
     @SubscribeEvent
     public static void onBlockEntityRegistry(AttachCapabilitiesEvent<BlockEntity> event) {
-//        if(event.getObject().getBlockState().is(ModBlockTags.LOCKABLE)){
-            event.addCapability(ResourceLocation.fromNamespaceAndPath(Lock.MODID, "lockable"), new LockCapabilityProvider());
-//        }
+        event.addCapability(ResourceLocation.fromNamespaceAndPath(Lock.MODID, "lockable"),
+                new LockCapabilityProvider());
     }
 
     @SubscribeEvent
     public static void onBlockInteract(PlayerInteractEvent.RightClickBlock event) {
         Level level = event.getLevel();
         BlockPos pos = event.getPos();
-
-        // 注意：这里去掉了 !isClientSide 的限制，让客户端也能同步拦截动画
         BlockEntity be = level.getBlockEntity(pos);
+
         if (be != null) {
+            boolean isLockable = be.getBlockState().is(ModBlockTags.LOCKABLE);
+
             be.getCapability(LockCapabilityProvider.LOCK_CAP).ifPresent(cap -> {
-                System.out.println("检测交互 - 是否有锁: " + cap.hasLock() + " | 是否锁定: " + cap.getLockData().isLocked());
+//                System.out.println("检测交互 - 是否有锁: " + cap.hasLock() + " | 是否锁定: " + cap.getLockData().isLocked());
                 // 打印日志：区分一下是哪个端在运行
-                String side = level.isClientSide() ? "客户端" : "服务端";
-                System.out.println(side + "检测 - 是否锁定: " + cap.getLockData().isLocked());
+//                String side = level.isClientSide() ? "客户端" : "服务端";
+//                System.out.println(side + "检测 - 是否锁定: " + cap.getLockData().isLocked());
                 if (cap.getLockData().isLocked()) {
-                    // 1. 拦截交互
+                    //拦截交互
                     event.setCanceled(true);
 
-                    // 2. 仅在服务端播放声音（防止声音重叠或在客户端重复触发）
+                    //仅在服务端播放声音（防止声音重叠或在客户端重复触发）
                     if (!level.isClientSide()) {
                         PlayFailureSound.play(level, pos, cap.getLockData());
                     }

@@ -7,5 +7,6 @@
   "item_group.key_tab": "Key",
 
   "message.lock.success": "Set lock successfully!",
-  "message.lock.already_locked": "Block has been locked!"
+  "message.lock.already_locked": "Block has been locked!",
+  "message.lock.not_lockable": "This block is not lockable!"
 }

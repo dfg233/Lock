@@ -2,6 +2,7 @@ package com.dfg233.lock.item.custom.lock;
 
 import com.dfg233.lock.capability.LockCapabilityProvider;
 import com.dfg233.lock.data.LockData;
+import com.dfg233.lock.tags.ModBlockTags;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
@@ -36,6 +37,14 @@ public class MechanicalLockItem extends Item {
 
             // 检查该位置是否存在方块实体（如箱子、熔炉等）
             if (be != null) {
+                // 关键：在这里检查 Tag。只有符合标签的方块才允许执行安装逻辑
+                if (!be.getBlockState().is(ModBlockTags.LOCKABLE)) {
+                    if (player != null) {
+                        player.sendSystemMessage(Component.translatable("message.lock.not_lockable"));
+                    }
+                    return InteractionResult.FAIL;
+                }
+
                 // 尝试从方块实体中获取“锁”的能力（Capability）
                 be.getCapability(LockCapabilityProvider.LOCK_CAP).ifPresent(cap -> {
                     LockData data = cap.getLockData();
