@@ -1,59 +1,70 @@
 package com.dfg233.lock.event;
 
 import com.dfg233.lock.Lock;
-import com.dfg233.lock.capability.LockCapabilityProvider;
+import com.dfg233.lock.client.ClientLockCache;
+import com.dfg233.lock.data.LockData;
+import com.dfg233.lock.data.LockLevelData;
 import com.dfg233.lock.item.AbstractLock;
-import com.dfg233.lock.tags.ModBlockTags;
+import com.dfg233.lock.item.ModItems;
+import com.dfg233.lock.network.ModMessages;
+import com.dfg233.lock.network.S2CSyncLockPacket;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.event.AttachCapabilitiesEvent;
+import net.minecraft.world.level.block.Block;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = Lock.MODID)
 public class ModEvents {
-    /**
-     * 当方块实体被创建并附加能力时触发此事件。
-     * 该方法用于将自定义的 {@link LockCapabilityProvider} 能力提供者附加到所有方块实体上。
-     * 这使得方块实体能够存储和管理与“锁定”相关的数据，从而实现方块的锁定功能。
-     * 能力键为 "lockable"，通过该键可以访问方块的锁定状态。
-     *
-     * @param event AttachCapabilitiesEvent<BlockEntity> 事件对象，包含要附加能力的方块实体。
-     */
-    @SubscribeEvent
-    public static void onBlockEntityRegistry(AttachCapabilitiesEvent<BlockEntity> event) {
-        event.addCapability(ResourceLocation.fromNamespaceAndPath(Lock.MODID, "lockable"),
-                new LockCapabilityProvider());
-    }
 
     @SubscribeEvent
     public static void onBlockInteract(PlayerInteractEvent.RightClickBlock event) {
         Level level = event.getLevel();
-        BlockPos pos = event.getPos();
-        BlockEntity be = level.getBlockEntity(pos);
+        BlockPos actualPos = LockLevelData.LockUtils.getActualLockPos(level, event.getPos());
         Player player = event.getEntity();
 
-        if (be != null) {
-            boolean isLockable = be.getBlockState().is(ModBlockTags.LOCKABLE);
+        // 客户端拦截：解决双重音效的关键
+        if (level.isClientSide()) {
+            if (ClientLockCache.isLocked(actualPos)) {
+                // 如果本地缓存显示已锁定，且玩家没拿钥匙（这里可以进一步细化判断）
+                // 强制拦截，阻止客户端播放音效和动画
+                event.setCanceled(true);
+            }
+            return;
+        }
 
-            be.getCapability(LockCapabilityProvider.LOCK_CAP).ifPresent(cap -> {
-                System.out.println("检测交互 - 是否有锁: " + cap.hasLock() + " | 是否锁定: " + cap.getLockData().isLocked());
-                // 打印日志：区分一下是哪个端在运行
-                String side = level.isClientSide() ? "客户端" : "服务端";
-                System.out.println(side + "检测 - 是否锁定: " + cap.getLockData().isLocked());
-                if (cap.getLockData().isLocked()) {
-                    AbstractLock lock = AbstractLock.create(cap.getLockData());
-                    if (lock.tryInteract(player, level, pos, event.getItemStack()) == InteractionResult.FAIL) {
-                        //拦截交互
-                        event.setCanceled(true);                        ;
-                    }
+        // 服务端逻辑
+        LockLevelData worldData = LockLevelData.get(level);
+        LockData data = worldData.getLock(actualPos);
+
+        if (data != null && data.isLocked()) {
+            AbstractLock lock = AbstractLock.create(data);
+            if (lock != null) {
+                if (lock.tryInteract(player, level, actualPos, event.getItemStack()) == InteractionResult.FAIL) {
+                    event.setCanceled(true);
                 }
-            });
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onBlockBreak(BlockEvent.BreakEvent event) {
+        Level level = (Level) event.getLevel();
+        BlockPos actualPos = LockLevelData.LockUtils.getActualLockPos(level, event.getPos());
+
+        if (!level.isClientSide()) {
+            LockLevelData worldData = LockLevelData.get(level);
+            if (worldData != null && worldData.getLock(actualPos) != null) {
+                worldData.removeLock(actualPos);
+                ModMessages.sendToClients(new S2CSyncLockPacket(actualPos, new CompoundTag()));
+                Block.popResource(level, actualPos, new ItemStack(ModItems.MECHANICAL_LOCK.get()));
+            }
         }
     }
 }

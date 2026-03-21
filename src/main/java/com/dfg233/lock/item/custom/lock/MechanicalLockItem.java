@@ -1,7 +1,7 @@
 package com.dfg233.lock.item.custom.lock;
 
-import com.dfg233.lock.capability.LockCapabilityProvider;
 import com.dfg233.lock.data.LockData;
+import com.dfg233.lock.data.LockLevelData;
 import com.dfg233.lock.item.AbstractLock;
 import com.dfg233.lock.network.ModMessages;
 import com.dfg233.lock.network.S2CSyncLockPacket;
@@ -12,15 +12,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 
-/**
- * 机械锁物品类
- * 负责将锁的数据（LockData）安装到方块的 Capability 中
- */
 public class MechanicalLockItem extends Item {
     public MechanicalLockItem(Properties pProperties) {
         super(pProperties);
@@ -29,47 +23,48 @@ public class MechanicalLockItem extends Item {
     @Override
     public InteractionResult useOn(UseOnContext context) {
         Level level = context.getLevel();
-        BlockPos pos = context.getClickedPos();
-        ItemStack stack = context.getItemInHand();
+        BlockPos pos = LockLevelData.LockUtils.getActualLockPos(level, context.getClickedPos());
         Player player = context.getPlayer();
-        BlockEntity be = level.getBlockEntity(pos);
+
+        // 1. 先进行基础判断
+        boolean isLockable = level.getBlockState(pos).is(ModBlockTags.LOCKABLE);
+
+        // 2. 如果不可上锁，仅在服务端发送一次提示消息
+        if (!isLockable) {
+            if (!level.isClientSide() && player != null) {
+                player.sendSystemMessage(Component.translatable("message.lock.not_lockable"));
+            }
+            // 注意：这里客户端需要返回 FAIL 或 PASS，服务端返回 FAIL，以确保逻辑同步
+            return InteractionResult.sidedSuccess(level.isClientSide());
+        }
 
         if (!level.isClientSide()) {
-            if (be != null && be.getBlockState().is(ModBlockTags.LOCKABLE)) {
-                be.getCapability(LockCapabilityProvider.LOCK_CAP).ifPresent(cap -> {
-                    if (!cap.hasLock()) {
-                        // 1. 设置基础数据
-                        LockData data = cap.getLockData();
-                        data.setLockType("mechanical"); // 标记这现在是一把机械锁
+            LockLevelData worldData = LockLevelData.get(level);
+            if (worldData != null && worldData.getLock(pos) == null) {
+                LockData data = new LockData();
+                data.setLockType("mechanical");
+                AbstractLock lock = AbstractLock.create(data);
 
-                        // 2. 利用工厂创建逻辑实例
-                        AbstractLock lock = AbstractLock.create(data);
+                if (lock != null) {
+                    lock.onInstalled(player);
+                    worldData.addLock(pos, data);
 
-                        // 3. 执行安装逻辑
-                        if (lock != null) {
-                            lock.onInstalled(player);
+                    CompoundTag nbt = new CompoundTag();
+                    data.writeToNBT(nbt);
+                    ModMessages.sendToClients(new S2CSyncLockPacket(pos, nbt));
 
-                            // 关键：构建 NBT 并发送同步包
-                            CompoundTag nbt = new CompoundTag();
-                            data.writeToNBT(nbt);
-                            ModMessages.sendToClients(new S2CSyncLockPacket(pos, nbt));
-
-
-                            stack.shrink(1); // 消耗锁物品
-                            be.setChanged(); // 存档
-                            if (player != null) {
-                                player.sendSystemMessage(Component.translatable("message.lock.success"));
-                            }
-                        }
-                    }
-                });
+                    context.getItemInHand().shrink(1);
+                    if (player != null) player.sendSystemMessage(Component.translatable("message.lock.success"));
+                    return InteractionResult.SUCCESS;
+                }
             }else {
+                // 如果已经有锁，也只在服务端提示一次
                 if (player != null) {
-                    player.sendSystemMessage(Component.translatable("message.lock.not_lockable"));
+                    player.sendSystemMessage(Component.translatable("message.lock.already_exists"));
+                    return InteractionResult.FAIL;
                 }
             }
         }
-        // 返回操作结果：在服务端返回 SUCCESS，客户端返回 CONSUME，并触发手部摆动动画
         return InteractionResult.sidedSuccess(level.isClientSide());
     }
 }
