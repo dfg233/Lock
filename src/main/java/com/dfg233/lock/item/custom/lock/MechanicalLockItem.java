@@ -2,8 +2,12 @@ package com.dfg233.lock.item.custom.lock;
 
 import com.dfg233.lock.capability.LockCapabilityProvider;
 import com.dfg233.lock.data.LockData;
+import com.dfg233.lock.item.AbstractLock;
+import com.dfg233.lock.network.ModMessages;
+import com.dfg233.lock.network.S2CSyncLockPacket;
 import com.dfg233.lock.tags.ModBlockTags;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -12,8 +16,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-
-import java.util.UUID;
 
 /**
  * 机械锁物品类
@@ -30,49 +32,43 @@ public class MechanicalLockItem extends Item {
         BlockPos pos = context.getClickedPos();
         ItemStack stack = context.getItemInHand();
         Player player = context.getPlayer();
+        BlockEntity be = level.getBlockEntity(pos);
 
-        // 仅在服务端执行逻辑，防止客户端与服务端数据不同步（数据同步的权威在服务端）
         if (!level.isClientSide()) {
-            BlockEntity be = level.getBlockEntity(pos);
-
-            // 检查该位置是否存在方块实体（如箱子、熔炉等）
-            if (be != null) {
-                // 关键：在这里检查 Tag。只有符合标签的方块才允许执行安装逻辑
-                if (!be.getBlockState().is(ModBlockTags.LOCKABLE)) {
-                    if (player != null) {
-                        player.sendSystemMessage(Component.translatable("message.lock.not_lockable"));
-                    }
-                    return InteractionResult.FAIL;
-                }
-
-                // 尝试从方块实体中获取“锁”的能力（Capability）
+            if (be != null && be.getBlockState().is(ModBlockTags.LOCKABLE)) {
                 be.getCapability(LockCapabilityProvider.LOCK_CAP).ifPresent(cap -> {
-                    LockData data = cap.getLockData();
-                    if (data.getLockId() == null) {
-                        data.setLockId(UUID.randomUUID()); // 必须生成 ID！
-                        data.setLocked(true);
-                        data.setLockType("mechanical");
+                    if (!cap.hasLock()) {
+                        // 1. 设置基础数据
+                        LockData data = cap.getLockData();
+                        data.setLockType("mechanical"); // 标记这现在是一把机械锁
 
-                        stack.shrink(1);
-                        be.setChanged(); // 必须通知系统存档
+                        // 2. 利用工厂创建逻辑实例
+                        AbstractLock lock = AbstractLock.create(data);
 
-                        if (player != null) {
-                            player.sendSystemMessage(Component.translatable("message.lock.success"));
-                        }
-                    } else {
-                        if (player != null) {
-                            player.sendSystemMessage(Component.translatable("message.lock.already_locked"));
+                        // 3. 执行安装逻辑
+                        if (lock != null) {
+                            lock.onInstalled(player);
+
+                            // 关键：构建 NBT 并发送同步包
+                            CompoundTag nbt = new CompoundTag();
+                            data.writeToNBT(nbt);
+                            ModMessages.sendToClients(new S2CSyncLockPacket(pos, nbt));
+
+
+                            stack.shrink(1); // 消耗锁物品
+                            be.setChanged(); // 存档
+                            if (player != null) {
+                                player.sendSystemMessage(Component.translatable("message.lock.success"));
+                            }
                         }
                     }
                 });
-
-                /* * 核心步骤：标记方块实体已更新。
-                 * 如果不调用此方法，Minecraft 可能会认为方块没变化而不保存新数据到硬盘。
-                 */
-                be.setChanged();
+            }else {
+                if (player != null) {
+                    player.sendSystemMessage(Component.translatable("message.lock.not_lockable"));
+                }
             }
         }
-
         // 返回操作结果：在服务端返回 SUCCESS，客户端返回 CONSUME，并触发手部摆动动画
         return InteractionResult.sidedSuccess(level.isClientSide());
     }

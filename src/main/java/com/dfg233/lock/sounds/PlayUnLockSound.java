@@ -6,7 +6,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 
-public class PlayFailureSound {
+public class PlayUnLockSound {
     public static void play(Level level, BlockPos pos, LockData lockData) {
         // 根据锁的类型播放不同的失败音效
         if ("mechanical".equals(lockData.getLockType())) {

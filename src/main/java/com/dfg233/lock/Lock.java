@@ -3,6 +3,7 @@ package com.dfg233.lock;
 import com.dfg233.lock.block.ModBlocks;
 import com.dfg233.lock.item.ModCreativeModeTabs;
 import com.dfg233.lock.item.ModItems;
+import com.dfg233.lock.network.ModMessages;
 import com.dfg233.lock.sounds.ModSounds;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
@@ -39,6 +40,7 @@ public class Lock {
         ModCreativeModeTabs.register(modEventBus);
         ModBlocks.register(modEventBus);
         ModSounds.register(modEventBus);
+        ModMessages.register();
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);

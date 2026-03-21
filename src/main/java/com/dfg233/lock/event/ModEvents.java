@@ -2,10 +2,12 @@ package com.dfg233.lock.event;
 
 import com.dfg233.lock.Lock;
 import com.dfg233.lock.capability.LockCapabilityProvider;
-import com.dfg233.lock.sounds.PlayFailureSound;
+import com.dfg233.lock.item.AbstractLock;
 import com.dfg233.lock.tags.ModBlockTags;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
@@ -34,27 +36,24 @@ public class ModEvents {
         Level level = event.getLevel();
         BlockPos pos = event.getPos();
         BlockEntity be = level.getBlockEntity(pos);
+        Player player = event.getEntity();
 
         if (be != null) {
             boolean isLockable = be.getBlockState().is(ModBlockTags.LOCKABLE);
 
             be.getCapability(LockCapabilityProvider.LOCK_CAP).ifPresent(cap -> {
-//                System.out.println("检测交互 - 是否有锁: " + cap.hasLock() + " | 是否锁定: " + cap.getLockData().isLocked());
+                System.out.println("检测交互 - 是否有锁: " + cap.hasLock() + " | 是否锁定: " + cap.getLockData().isLocked());
                 // 打印日志：区分一下是哪个端在运行
-//                String side = level.isClientSide() ? "客户端" : "服务端";
-//                System.out.println(side + "检测 - 是否锁定: " + cap.getLockData().isLocked());
+                String side = level.isClientSide() ? "客户端" : "服务端";
+                System.out.println(side + "检测 - 是否锁定: " + cap.getLockData().isLocked());
                 if (cap.getLockData().isLocked()) {
-                    //拦截交互
-                    event.setCanceled(true);
-
-                    //仅在服务端播放声音（防止声音重叠或在客户端重复触发）
-                    if (!level.isClientSide()) {
-                        PlayFailureSound.play(level, pos, cap.getLockData());
+                    AbstractLock lock = AbstractLock.create(cap.getLockData());
+                    if (lock.tryInteract(player, level, pos, event.getItemStack()) == InteractionResult.FAIL) {
+                        //拦截交互
+                        event.setCanceled(true);                        ;
                     }
                 }
             });
         }
     }
-
-
 }
