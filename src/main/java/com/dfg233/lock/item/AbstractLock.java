@@ -27,41 +27,49 @@ public abstract class AbstractLock {
 
     public final InteractionResult tryInteract(Player player, Level level, BlockPos pos, ItemStack stack) {
         KeyData keyData = getKeyDataFromStack(stack);
+        // 验证钥匙是否匹配
         boolean isMatchingKey = keyData != null && onVerify(player, keyData) && lockData.getKeyType().equals(keyData.getKeyType());
 
-        // 逻辑 A：使用匹配的钥匙点击（切换开关状态）
-        if (isMatchingKey) {
-            if (!level.isClientSide()) {
-                boolean nextState = !lockData.isLocked();
-                lockData.setLocked(nextState);
-
-                if (nextState) {
-                    PlayLockedSound.play(level, pos, this.lockData);
+        // 逻辑分支 A：使用钥匙交互
+        if (keyData != null) {
+            if (isMatchingKey) {
+                if (lockData.isLocked()) {
+                    // 解锁逻辑
+                    lockData.setLocked(false);
+                    onStateChanged(level, pos, false);
+                    syncToClients(level, pos);
+                    player.displayClientMessage(Component.translatable("message.lock.unlocked").withStyle(ChatFormatting.GREEN),true);
+                    return InteractionResult.sidedSuccess(level.isClientSide());
                 } else {
-                    PlayUnLockSound.play(level, pos, this.lockData);
+                    // 上锁逻辑
+                    // 注意：这里返回 SUCCESS 会触发 ModEvents 的拦截，从而阻止门被关上
+                    lockData.setLocked(true);
+                    onStateChanged(level, pos, true);
+                    syncToClients(level, pos);
+                    player.displayClientMessage(Component.translatable("message.lock.locked").withStyle(ChatFormatting.RED),true);
+                    return InteractionResult.sidedSuccess(level.isClientSide());
                 }
-
-                Component message = nextState ?
-                        Component.translatable("message.lock.locked").withStyle(ChatFormatting.RED) :
-                        Component.translatable("message.lock.unlocked").withStyle(ChatFormatting.GREEN);
-                player.displayClientMessage(message, true);
-
-                syncToClients(level, pos);
+            } else {
+                // 钥匙不匹配，视为交互失败，不许打开
+                if (!level.isClientSide()) {
+                    player.displayClientMessage(Component.translatable("message.lock.wrong_key").withStyle(ChatFormatting.DARK_RED),true);
+                    onVerifyFailed(level, pos);
+                }
+                return InteractionResult.FAIL;
             }
-            // 返回 SUCCESS，消费掉这次点击，不打开箱子界面
-            return InteractionResult.sidedSuccess(level.isClientSide());
         }
 
-        // 逻辑 B：非钥匙交互
+        // 逻辑分支 B：非钥匙（普通物品或空手）交互
         if (lockData.isLocked()) {
-            // 锁定时拦截一切交互
+            // 已锁定状态下拦截所有交互
             if (!level.isClientSide()) {
                 onVerifyFailed(level, pos);
             }
             return InteractionResult.FAIL;
         }
 
-        // 未锁定时放行，让原版箱子正常打开
+        // 【关键】未锁定且没拿钥匙，返回 PASS。
+        // 这允许玩家在没上锁时正常开关门、打开箱子。
         return InteractionResult.PASS;
     }
 

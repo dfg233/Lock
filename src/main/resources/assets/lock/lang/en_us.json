@@ -9,9 +9,11 @@
   "message.lock.success": "Set lock successfully!",
   "message.lock.already_locked": "Block has been locked!",
   "message.lock.not_lockable": "This block is not lockable!",
-  "message.lock.already_exists": "Block has been locked!",
   "message.lock.key_received": "Key received",
   "tooltip.lock.key_type": "Key Type",
   "tooltip.lock.key_id": "Key ID",
-  "tooltip.lock.key_blank": "Blank Key"
+  "tooltip.lock.key_blank": "Blank Key",
+  "message.lock.unlocked": "Unlocked",
+  "message.lock.locked": "Locked",
+  "message.lock.wrong_key": "Wrong key"
 }

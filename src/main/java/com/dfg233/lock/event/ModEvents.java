@@ -34,37 +34,24 @@ public class ModEvents {
         Player player = event.getEntity();
         ItemStack stack = event.getItemStack();
 
-        // --- 关键修复：客户端拦截 ---
-        if (level.isClientSide()) {
-            // 如果客户端缓存显示该位置已锁定，且玩家没拿钥匙，直接取消事件
-            // 这会阻止客户端的“开门预测”动画
-            if (ClientLockCache.isLocked(actualPos)) {
-                // 如果玩家拿的是钥匙且 UUID 匹配（这里可以简化判断，只要锁着就先拦截）
-                // 如果你的逻辑允许“未开锁前不能点”，这里直接 cancel
-                event.setCanceled(true);
-                event.setResult(Event.Result.DENY);
-                return;
-            }
-            return;
-        }
-
-// --- 服务端逻辑 ---
         LockLevelData worldData = LockLevelData.get(level);
-        LockData data = worldData.getLock(actualPos);
+        if (worldData != null) {
+            LockData data = worldData.getLock(actualPos);
+            if (data != null) {
+                AbstractLock lock = AbstractLock.create(data);
+                if (lock != null) {
+                    // 执行锁的逻辑
+                    InteractionResult result = lock.tryInteract(player, level, actualPos, stack);
 
-        if (data != null) {
-            AbstractLock lock = AbstractLock.create(data);
-            if (lock != null) {
-                InteractionResult result = lock.tryInteract(player, level, actualPos, stack);
-
-                // 如果交互失败（即锁着且钥匙不对），必须取消事件
-                if (result == InteractionResult.FAIL) {
-                    event.setCanceled(true);
-                    event.setCancellationResult(InteractionResult.FAIL);
-                } else if (result == InteractionResult.SUCCESS) {
-                    // 如果开关锁成功，也要取消事件，防止门在开关锁的同时自己跳动
-                    event.setCanceled(true);
-                    event.setCancellationResult(InteractionResult.SUCCESS);
+                    // 【核心修复】只要不是 PASS，说明锁系统接管了交互
+                    if (result != InteractionResult.PASS) {
+                        // 1. 取消事件，阻止后续逻辑
+                        event.setCanceled(true);
+                        // 2. 设置结果为 DENY，彻底阻止原版方块（如门、箱子）的自带逻辑运行
+                        event.setResult(Event.Result.DENY);
+                        // 3. 设置取消结果，确保客户端与服务端步调一致
+                        event.setCancellationResult(result);
+                    }
                 }
             }
         }
