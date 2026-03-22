@@ -1,12 +1,11 @@
 package com.dfg233.lock.item;
 
+import com.dfg233.lock.client.ClientLockCache;
 import com.dfg233.lock.data.KeyData;
 import com.dfg233.lock.data.LockData;
 import com.dfg233.lock.item.custom.lock.MechanicalLock;
 import com.dfg233.lock.network.ModMessages;
 import com.dfg233.lock.network.S2CSyncLockPacket;
-import com.dfg233.lock.sounds.PlayLockedSound;
-import com.dfg233.lock.sounds.PlayUnLockSound;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -36,6 +35,7 @@ public abstract class AbstractLock {
                 if (lockData.isLocked()) {
                     // 解锁逻辑
                     lockData.setLocked(false);
+                    ClientLockCache.updateStatus(pos, false);
                     onStateChanged(level, pos, false);
                     syncToClients(level, pos);
                     player.displayClientMessage(Component.translatable("message.lock.unlocked").withStyle(ChatFormatting.GREEN),true);
@@ -43,6 +43,7 @@ public abstract class AbstractLock {
                 } else {
                     // 上锁逻辑
                     // 注意：这里返回 SUCCESS 会触发 ModEvents 的拦截，从而阻止门被关上
+                    ClientLockCache.updateStatus(pos, true);
                     lockData.setLocked(true);
                     onStateChanged(level, pos, true);
                     syncToClients(level, pos);
@@ -101,7 +102,8 @@ public abstract class AbstractLock {
     }
 
     protected abstract boolean onVerify(Player player, KeyData keyData);
-    protected void onStateChanged(Level level, BlockPos pos, boolean locked) {}
+    protected void onStateChanged(Level level, BlockPos pos, boolean locked) {
+    }
     public abstract ItemStack getAsStack();
     protected abstract void onVerifyFailed(Level level, BlockPos pos);
     protected abstract KeyData getKeyDataFromStack(ItemStack stack);

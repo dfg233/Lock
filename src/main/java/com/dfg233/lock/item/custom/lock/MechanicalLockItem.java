@@ -1,6 +1,5 @@
 package com.dfg233.lock.item.custom.lock;
 
-import com.dfg233.lock.Utils.LockUtils;
 import com.dfg233.lock.data.LockData;
 import com.dfg233.lock.data.LockLevelData;
 import com.dfg233.lock.item.AbstractLock;
@@ -38,7 +37,7 @@ public class MechanicalLockItem extends Item {
         // 1. 基础判断：方块是否允许上锁
         if (!level.getBlockState(pos).is(ModBlockTags.LOCKABLE)) {
             if (!level.isClientSide() && player != null) {
-                player.displayClientMessage(Component.translatable("message.lock.not_lockable").withStyle(ChatFormatting.RED), true);
+                player.displayClientMessage(Component.translatable("message.lock.not_lockable").withStyle(ChatFormatting.DARK_RED), true);
             }
             return InteractionResult.FAIL;
         }
@@ -51,14 +50,11 @@ public class MechanicalLockItem extends Item {
                 LockData data = new LockData();
                 boolean isNewLock = true;
 
-                if (lockItemStack.hasTag() && lockItemStack.getTag().contains("LockData")) {
+                // 如果是合成的新锁，初始化默认属性
+                if (lockItemStack.getTag() != null && lockItemStack.hasTag() && lockItemStack.getTag().contains("LockData")) {
                     // 如果是从方块上拆下来的旧锁，恢复其原有的 UUID 和属性
                     data.readFromNBT(lockItemStack.getTag().getCompound("LockData"));
                     isNewLock = false;
-                } else {
-                    // 如果是合成的新锁，初始化默认属性
-                    data.setLockType("mechanical");
-                    data.setKeyType("mechanical");
                 }
 
                 AbstractLock lock = AbstractLock.create(data);
@@ -86,13 +82,13 @@ public class MechanicalLockItem extends Item {
 
                     // 消耗物品并提示
                     lockItemStack.shrink(1);
-                    if (player != null) player.displayClientMessage(Component.translatable("message.lock.success").withStyle(ChatFormatting.GREEN), true);
+                    if (player != null) player.displayClientMessage(Component.translatable("message.lock.success").withStyle(ChatFormatting.DARK_GREEN), true);
 
                     return InteractionResult.SUCCESS;
                 }
             } else {
                 if (player != null) {
-                    player.displayClientMessage(Component.translatable("message.lock.already_exists").withStyle(ChatFormatting.RED), true);
+                    player.displayClientMessage(Component.translatable("message.lock.already_locked").withStyle(ChatFormatting.RED), true);
                 }
                 return InteractionResult.FAIL;
             }
