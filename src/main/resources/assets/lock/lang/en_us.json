@@ -15,5 +15,6 @@
   "tooltip.lock.key_blank": "Blank Key",
   "message.lock.unlocked": "Unlocked",
   "message.lock.locked": "Locked",
-  "message.lock.wrong_key": "Wrong key"
+  "message.lock.wrong_key": "Wrong key",
+  "message.lock.merged_protection": "Merged protection"
 }

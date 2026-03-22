@@ -34,6 +34,20 @@ public class ModEvents {
         Player player = event.getEntity();
         ItemStack stack = event.getItemStack();
 
+        // --- 客户端提前拦截逻辑 (解决闪烁的核心) ---
+        if (level.isClientSide()) {
+            if (ClientLockCache.isLocked(actualPos)) {
+                // 检查玩家手里拿的是不是【可能匹配】的钥匙
+                // 这里我们只需要简单判断是否为钥匙类型即可
+                // 如果是钥匙，我们不拦截，放行让 AbstractLock#tryInteract 去处理具体的 UUID 匹配
+                if (!(stack.getItem() instanceof com.dfg233.lock.item.custom.key.KeyItem)) {
+                    event.setCanceled(true);
+                    event.setResult(Event.Result.DENY);
+                    return;
+                }
+            }
+        }
+
         LockLevelData worldData = LockLevelData.get(level);
         if (worldData != null) {
             LockData data = worldData.getLock(actualPos);
