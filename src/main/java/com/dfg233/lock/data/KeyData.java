@@ -5,23 +5,34 @@ import net.minecraft.nbt.CompoundTag;
 import java.util.UUID;
 
 public class KeyData {
-    private UUID keyId = null;
-    private String keyType = "";
+    private UUID lockId;
+    private String keyType;
 
-    public UUID getKeyId() {
-        return keyId;
+    public KeyData(UUID lockId, String keyType) {
+        this.lockId = lockId;
+        this.keyType = keyType;
     }
-    public void setKeyId(UUID keyId) {
-        this.keyId = keyId;
-    }
-    public String getKeyType() {return keyType;}
-    public void setKeyType(String keyType) {this.keyType = keyType;}
 
+    public UUID getLockId() {
+        return lockId;
+    }
+    public String getKeyType() {
+        return keyType;
+    }
+
+    public void setLockId(UUID lockId) {
+        this.lockId = lockId;
+    }
+    public void setKeyType(String keyType) {
+        this.keyType = keyType;
+    }
 
     public void writeToNBT(CompoundTag tag) {
-        tag.putUUID("keyId", keyId);
+        tag.putUUID("lockId", lockId);
+        tag.putString("keyType", keyType);
     }
     public void readFromNBT(CompoundTag tag) {
-        this.keyId = tag.hasUUID("keyId") ? tag.getUUID("keyId") : null;
+        this.lockId = tag.hasUUID("lockId") ? tag.getUUID("lockId") : null;
+        this.keyType = tag.getString("keyType");
     }
 }

@@ -14,10 +14,10 @@ public class ModItems {
     //物品注册
 
     //锁注册
-    public static final RegistryObject<Item> MECHANICAL_LOCK = ITEMS.register("mechanical_lock", () -> new MechanicalLockItem(new Item.Properties()));
+    public static final RegistryObject<Item> MECHANICAL_LOCK = ITEMS.register("mechanical_lock", () -> new MechanicalLockItem(new Item.Properties().stacksTo(1)));
 
     //钥匙注册
-    public static final RegistryObject<Item> MECHANICAL_KEY = ITEMS.register("mechanical_key", () -> new MechanicalKeyItem(new Item.Properties()));
+    public static final RegistryObject<Item> MECHANICAL_KEY = ITEMS.register("mechanical_key", () -> new MechanicalKeyItem(new Item.Properties().stacksTo(1)));
 
     public static void register(IEventBus eventBus) {
         ITEMS.register(eventBus);

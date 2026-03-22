@@ -7,12 +7,14 @@ import java.util.UUID;
 public class LockData {
     private boolean isLocked = false;
     private String lockType = "";
+    private String keyType = "";
     private UUID lockId = null;//每把锁都有对应的UUID方便识别对应的钥匙和复制
     private CompoundTag keyData = new CompoundTag();
 
     public LockData() {
         this.isLocked = false;
         this.lockType = "";
+        this.keyType = "";
         this.lockId = null;
     }
 
@@ -20,15 +22,18 @@ public class LockData {
     public void writeToNBT(CompoundTag tag) {
         tag.putBoolean("isLocked", this.isLocked);
         tag.putString("lockType", this.lockType);
-        if (this.lockId != null) {
-            tag.putUUID("lockId", this.lockId);
+        tag.putString("keyType", this.keyType);
+        if (this.lockId == null) {
+            this.lockId = UUID.randomUUID();
         }
+        tag.putUUID("lockId", this.lockId);
         tag.put("keyData", this.keyData);
     }
 
     public void readFromNBT(CompoundTag tag) {
         this .isLocked = tag.getBoolean("isLocked");
         this.lockType = tag.getString("lockType");
+        this.keyType = tag.getString("keyType");
         this.lockId = tag.hasUUID("lockId") ? tag.getUUID("lockId") : null;
         this.keyData = tag.getCompound("keyData");
     }
@@ -39,6 +44,9 @@ public class LockData {
     }
     public String getLockType() {
         return this.lockType;
+    }
+    public String getKeyType() {
+        return this.keyType;
     }
     public UUID getLockId() {
         return this.lockId;
@@ -52,6 +60,9 @@ public class LockData {
     }
     public void setLockType(String lockType) {
         this.lockType = lockType;
+    }
+    public void setKeyType(String keyType) {
+        this.keyType = keyType;
     }
     public void setLockId(UUID lockId) {
         this.lockId = lockId;

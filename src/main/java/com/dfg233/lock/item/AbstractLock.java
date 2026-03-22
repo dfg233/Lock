@@ -5,8 +5,12 @@ import com.dfg233.lock.data.LockData;
 import com.dfg233.lock.item.custom.lock.MechanicalLock;
 import com.dfg233.lock.network.ModMessages;
 import com.dfg233.lock.network.S2CSyncLockPacket;
+import com.dfg233.lock.sounds.PlayLockedSound;
+import com.dfg233.lock.sounds.PlayUnLockSound;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -17,48 +21,57 @@ import java.util.UUID;
 public abstract class AbstractLock {
     protected final LockData lockData;
 
-    //构造函数
     public AbstractLock(LockData data) {
         this.lockData = data;
     }
-    /**
-     * 核心逻辑：尝试交互（上锁、开锁、检查）
-     * 返回值代表是否成功执行了操作
-     */
+
     public final InteractionResult tryInteract(Player player, Level level, BlockPos pos, ItemStack stack) {
         KeyData keyData = getKeyDataFromStack(stack);
+        boolean isMatchingKey = keyData != null && onVerify(player, keyData) && lockData.getKeyType().equals(keyData.getKeyType());
 
-        if (onVerify(player, keyData)) {
-            // 验证通过：切换状态
-            boolean nextState = !lockData.isLocked();
-            lockData.setLocked(nextState);
+        // 逻辑 A：使用匹配的钥匙点击（切换开关状态）
+        if (isMatchingKey) {
+            if (!level.isClientSide()) {
+                boolean nextState = !lockData.isLocked();
+                lockData.setLocked(nextState);
 
-            // 触发状态改变钩子（播放声音等）
-            onStateChanged(level, pos, nextState);
+                if (nextState) {
+                    PlayLockedSound.play(level, pos, this.lockData);
+                } else {
+                    PlayUnLockSound.play(level, pos, this.lockData);
+                }
 
-            // 核心：全自动同步给所有客户端
-            syncToClients(level, pos);
+                Component message = nextState ?
+                        Component.translatable("message.lock.locked").withStyle(ChatFormatting.RED) :
+                        Component.translatable("message.lock.unlocked").withStyle(ChatFormatting.GREEN);
+                player.displayClientMessage(message, true);
 
-            return InteractionResult.SUCCESS;
-        } else {
-            // 验证失败
-            onVerifyFailed(level, pos);
+                syncToClients(level, pos);
+            }
+            // 返回 SUCCESS，消费掉这次点击，不打开箱子界面
+            return InteractionResult.sidedSuccess(level.isClientSide());
+        }
+
+        // 逻辑 B：非钥匙交互
+        if (lockData.isLocked()) {
+            // 锁定时拦截一切交互
+            if (!level.isClientSide()) {
+                onVerifyFailed(level, pos);
+            }
             return InteractionResult.FAIL;
         }
+
+        // 未锁定时放行，让原版箱子正常打开
+        return InteractionResult.PASS;
     }
 
     public static AbstractLock create(LockData data) {
-        String type = data.getLockType();
-        if ("mechanical".equals(type)) {
+        if ("mechanical".equals(data.getLockType())) {
             return new MechanicalLock(data);
         }
-        // 其他类型的锁
         return null;
     }
 
-    /**
-     * 当锁被安装到方块上时触发
-     */
     public void onInstalled(Player player) {
         if (lockData.getLockId() == null) {
             lockData.setLockId(UUID.randomUUID());
@@ -66,9 +79,6 @@ public abstract class AbstractLock {
         lockData.setLocked(true);
     }
 
-    /**
-     * 将当前数据同步到所有客户端
-     */
     public final void syncToClients(Level level, BlockPos pos) {
         if (!level.isClientSide()) {
             CompoundTag nbt = new CompoundTag();
@@ -77,11 +87,14 @@ public abstract class AbstractLock {
         }
     }
 
-    // --- 以下是交给子类实现的“钩子” ---
+    // 去掉了关于门的 canLock 判断，箱子默认永远可以上锁
+    protected boolean canLock(Level level, BlockPos pos) {
+        return true;
+    }
+
     protected abstract boolean onVerify(Player player, KeyData keyData);
-    protected abstract void onStateChanged(Level level, BlockPos pos, boolean locked);
+    protected void onStateChanged(Level level, BlockPos pos, boolean locked) {}
+    public abstract ItemStack getAsStack();
     protected abstract void onVerifyFailed(Level level, BlockPos pos);
     protected abstract KeyData getKeyDataFromStack(ItemStack stack);
-
-
 }

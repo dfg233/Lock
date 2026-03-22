@@ -6,9 +6,6 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.DoorBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 
@@ -65,18 +62,5 @@ public class LockLevelData extends SavedData {
         });
         nbt.put("Locks", list);
         return nbt;
-    }
-
-    // 内部工具类：处理多格方块
-    public static class LockUtils {
-        public static BlockPos getActualLockPos(Level level, BlockPos pos) {
-            BlockState state = level.getBlockState(pos);
-            if (state.getBlock() instanceof DoorBlock) {
-                if (state.getValue(DoorBlock.HALF) == DoubleBlockHalf.UPPER) {
-                    return pos.below();
-                }
-            }
-            return pos;
-        }
     }
 }

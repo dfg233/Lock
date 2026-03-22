@@ -13,7 +13,7 @@ public class PlayUnLockSound {
             // 播放铁门的金属撞击声，模拟锁孔被堵住
             level.playSound(null, pos, SoundEvents.IRON_DOOR_CLOSE, SoundSource.BLOCKS, 0.5F, 1.5F);
         } else {
-            // 默认失败音效
+            // 默认成功音效
             level.playSound(null, pos, SoundEvents.CHEST_LOCKED, SoundSource.BLOCKS, 1.0F, 1.0F);
         }
     }

@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "lock:item/icon"
+    "layer0": "lock:item/mechanical_key"
   }
 }
