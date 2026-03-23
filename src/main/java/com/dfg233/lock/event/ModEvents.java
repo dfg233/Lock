@@ -30,40 +30,88 @@ public class ModEvents {
     @SubscribeEvent
     public static void onBlockInteract(PlayerInteractEvent.RightClickBlock event) {
         Level level = event.getLevel();
-        BlockPos actualPos = getActualLockPos(level, event.getPos());
+        BlockPos pos = event.getPos();
+        BlockPos actualPos = getActualLockPos(level, pos); // 获取实际锁坐标（如门下半部分）
         Player player = event.getEntity();
         ItemStack stack = event.getItemStack();
 
-        // --- 客户端提前拦截逻辑 (解决闪烁的核心) ---
-        if (level.isClientSide()) {
-            if (ClientLockCache.isLocked(actualPos)) {
-                // 检查玩家手里拿的是不是【可能匹配】的钥匙
-                // 这里我们只需要简单判断是否为钥匙类型即可
-                // 如果是钥匙，我们不拦截，放行让 AbstractLock#tryInteract 去处理具体的 UUID 匹配
-                if (!(stack.getItem() instanceof com.dfg233.lock.item.custom.key.KeyItem)) {
-                    event.setCanceled(true);
-                    event.setResult(Event.Result.DENY);
-                    return;
-                }
+        // --- 1. 前置拦截 (解决动画闪烁与非法交互) ---
+        boolean isKey = stack.getItem() instanceof com.dfg233.lock.item.custom.key.KeyItem;
+        boolean isLockedClient = level.isClientSide() && ClientLockCache.isLocked(actualPos);
+
+        // 终极拦截条件：只要是锁定的，或者玩家正拿着钥匙准备操作
+        // 这样可以确保 DoorBlock#use 根本没机会执行
+        if (isLockedClient || isKey) {
+            // 强制取消事件并告知系统：此交互已由插件成功处理，不要执行原版方块逻辑
+            event.setCanceled(true);
+            event.setResult(Event.Result.DENY);
+            event.setCancellationResult(InteractionResult.sidedSuccess(level.isClientSide()));
+
+            // 如果是客户端且没有拿钥匙（只是普通点击），到这里就可以结束了
+            if (level.isClientSide() && !isKey) {
+                return;
             }
         }
 
+        // --- 2. 业务处理 (服务端逻辑核心) ---
+        // 注意：由于上面可能 Canceled 了事件，但 Forge 依然允许在服务端运行后续代码
+        // 我们需要通过 LockLevelData 进行实际的逻辑校验
         LockLevelData worldData = LockLevelData.get(level);
         if (worldData != null) {
             LockData data = worldData.getLock(actualPos);
             if (data != null) {
+
+                // 条件：潜行 + 空手 + 锁处于开启状态
+                if (player.isShiftKeyDown() && stack.isEmpty() && !data.isLocked()) {
+                    if (!level.isClientSide()) {
+                        AbstractLock lock = AbstractLock.create(data);
+                        if (lock != null) {
+                            // 1. 生成带有原有 NBT 数据的锁物品
+                            ItemStack dropStack = lock.getAsStack();
+                            CompoundTag nbt = new CompoundTag();
+                            data.writeToNBT(nbt);
+                            dropStack.getOrCreateTag().put("LockData", nbt);
+
+                            // 2. 核心修改：尝试放入玩家背包
+                            // 如果背包满了，addItem 会返回 false，此时再执行掉落逻辑作为兜底
+                            if (!player.getInventory().add(dropStack)) {
+                                Block.popResource(level, actualPos, dropStack);
+                            }
+
+                            // 3. 从世界中移除并通知客户端
+                            worldData.removeLock(actualPos);
+                            ModMessages.sendToClients(new S2CSyncLockPacket(actualPos, new CompoundTag()));
+
+                            // 4. 反馈
+                            player.displayClientMessage(Component.translatable("message.lock.removed").withStyle(ChatFormatting.YELLOW), true);
+                        }
+                    }
+
+                    // 拦截后续交互逻辑
+                    event.setCanceled(true);
+                    event.setResult(Event.Result.DENY);
+                    event.setCancellationResult(InteractionResult.sidedSuccess(level.isClientSide()));
+                    return;
+                }
+
                 AbstractLock lock = AbstractLock.create(data);
                 if (lock != null) {
-                    // 执行锁的逻辑
+                    // 执行开/上锁逻辑 (tryInteract 内部应处理好 syncToClients 和音效)
                     InteractionResult result = lock.tryInteract(player, level, actualPos, stack);
 
-                    // 【核心修复】只要不是 PASS，说明锁系统接管了交互
+                    if (result == InteractionResult.FAIL && data.isLocked()) {
+                        if (!level.isClientSide()) {
+                            player.displayClientMessage(
+                                    Component.translatable("message.lock.is_locked").withStyle(ChatFormatting.RED),
+                                    true
+                            );
+                        }
+                    }
+
+                    // 确保结果同步：如果业务逻辑判定为成功或失败（非PASS），再次强制取消事件
                     if (result != InteractionResult.PASS) {
-                        // 1. 取消事件，阻止后续逻辑
                         event.setCanceled(true);
-                        // 2. 设置结果为 DENY，彻底阻止原版方块（如门、箱子）的自带逻辑运行
                         event.setResult(Event.Result.DENY);
-                        // 3. 设置取消结果，确保客户端与服务端步调一致
                         event.setCancellationResult(result);
                     }
                 }
@@ -119,7 +167,7 @@ public class ModEvents {
             if (worldData != null && worldData.getLock(actualPos) != null) {
                 if (event.getEntity() instanceof Player player) {
                     // 提示玩家合并后的区域已受锁保护
-                    player.displayClientMessage(Component.translatable("message.lock.merged_protection").withStyle(ChatFormatting.RED), true);
+                    player.displayClientMessage(Component.translatable("message.lock.merged_protection").withStyle(ChatFormatting.GRAY), true);
                 }
             }
         }

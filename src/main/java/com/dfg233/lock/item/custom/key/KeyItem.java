@@ -37,17 +37,4 @@ public class KeyItem extends Item {
         }
         return null;
     }
-
-    @Override
-    public void appendHoverText(ItemStack pStack, @Nullable Level pLevel, List<Component> pTooltip, TooltipFlag pIsAdvanced) {
-        UUID id = getLockId(pStack);
-        // 显示钥匙所属的物理类型（机械/电子等）
-        pTooltip.add(Component.translatable("tooltip.lock.key_type").append(": " + keyType).withStyle(ChatFormatting.GRAY));
-
-        if (id != null) {
-            pTooltip.add(Component.translatable("tooltip.lock.key_id").append(": " + id.toString().substring(0, 8)).withStyle(ChatFormatting.GRAY));
-        } else {
-            pTooltip.add(Component.translatable("tooltip.lock.key_blank").withStyle(ChatFormatting.GRAY));
-        }
-    }
 }

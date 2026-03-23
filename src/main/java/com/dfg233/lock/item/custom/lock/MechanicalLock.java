@@ -6,6 +6,7 @@ import com.dfg233.lock.item.AbstractLock;
 import com.dfg233.lock.item.ModItems;
 import com.dfg233.lock.item.custom.key.KeyItem;
 import com.dfg233.lock.sounds.PlayLockedSound;
+import com.dfg233.lock.sounds.PlayUnLockSound;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -43,5 +44,15 @@ public class MechanicalLock extends AbstractLock {
     public ItemStack getAsStack() {
         // 返回机械锁物品
         return new ItemStack(ModItems.MECHANICAL_LOCK.get());
+    }
+
+    @Override
+    protected void onStateChanged(Level level, BlockPos pos, boolean locked) {
+        super.onStateChanged(level, pos, locked);
+        if (locked) {
+            PlayLockedSound.play(level, pos, this.lockData);
+        }else {
+            PlayUnLockSound.play(level, pos, this.lockData);
+        }
     }
 }

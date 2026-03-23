@@ -5,8 +5,6 @@ import com.dfg233.lock.data.LockData;
 import com.dfg233.lock.item.custom.lock.MechanicalLock;
 import com.dfg233.lock.network.ModMessages;
 import com.dfg233.lock.network.S2CSyncLockPacket;
-import com.dfg233.lock.sounds.PlayLockedSound;
-import com.dfg233.lock.sounds.PlayUnLockSound;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;

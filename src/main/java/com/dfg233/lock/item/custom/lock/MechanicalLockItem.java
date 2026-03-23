@@ -1,6 +1,5 @@
 package com.dfg233.lock.item.custom.lock;
 
-import com.dfg233.lock.Utils.LockUtils;
 import com.dfg233.lock.data.LockData;
 import com.dfg233.lock.data.LockLevelData;
 import com.dfg233.lock.item.AbstractLock;
@@ -17,8 +16,12 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 import static com.dfg233.lock.Utils.LockUtils.getActualLockPos;
 
@@ -92,11 +95,36 @@ public class MechanicalLockItem extends Item {
                 }
             } else {
                 if (player != null) {
-                    player.displayClientMessage(Component.translatable("message.lock.already_exists").withStyle(ChatFormatting.RED), true);
+                    player.displayClientMessage(Component.translatable("message.lock.already_locked").withStyle(ChatFormatting.YELLOW), true);
                 }
                 return InteractionResult.FAIL;
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide());
+    }
+
+    @Override
+    public void appendHoverText(ItemStack pStack, @Nullable Level pLevel, List<Component> pTooltip, TooltipFlag pIsAdvanced) {
+        // 1. 显示锁的类型 (固定为机械)
+        pTooltip.add(Component.translatable("tooltip.lock.lock_type")
+                .append(": ")
+                .append(Component.translatable("tooltip.lock.type.mechanical").withStyle(ChatFormatting.GOLD))
+                .withStyle(ChatFormatting.GRAY));
+
+        // 2. 检查是否有绑定的 ID 数据
+        CompoundTag tag = pStack.getTag();
+        if (tag != null && tag.contains("LockData")) {
+            CompoundTag lockData = tag.getCompound("LockData");
+            if (lockData.hasUUID("lockId")) {
+                pTooltip.add(Component.translatable("tooltip.lock.lock_id")
+                        .append(": ")
+                        .append(Component.literal(lockData.getUUID("lockId").toString().substring(0, 16)).withStyle(ChatFormatting.AQUA))
+                        .withStyle(ChatFormatting.GRAY));
+            }
+        } else {
+            // 3. 如果没有 LockData，说明是新合成的空白锁
+            pTooltip.add(Component.translatable("tooltip.lock.lock_blank")
+                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+        }
     }
 }
