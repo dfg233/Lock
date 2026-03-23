@@ -6,7 +6,9 @@ import com.dfg233.lock.data.LockData;
 import com.dfg233.lock.item.custom.lock.MechanicalLock;
 import com.dfg233.lock.network.ModMessages;
 import com.dfg233.lock.network.S2CSyncLockPacket;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -14,6 +16,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.UUID;
 
@@ -53,7 +56,6 @@ public abstract class AbstractLock {
             } else {
                 // 钥匙不匹配，视为交互失败，不许打开
                 if (!level.isClientSide()) {
-                    player.displayClientMessage(Component.translatable("message.lock.wrong_key").withStyle(ChatFormatting.DARK_RED),true);
                     onVerifyFailed(level, pos);
                 }
                 return InteractionResult.FAIL;
@@ -99,6 +101,18 @@ public abstract class AbstractLock {
     // 去掉了关于门的 canLock 判断，箱子默认永远可以上锁
     protected boolean canLock(Level level, BlockPos pos) {
         return true;
+    }
+
+    /**
+     * 客户端调用：自定义渲染逻辑
+     * @param poseStack 变换栈
+     * @param buffer 渲染缓冲
+     * @param pos 方块坐标
+     * @param state 方块状态
+     * @param packedLight 环境光照
+     */
+    public void render(PoseStack poseStack, MultiBufferSource buffer, BlockPos pos, BlockState state, int packedLight) {
+        // 默认不渲染，由子类实现具体模型
     }
 
     protected abstract boolean onVerify(Player player, KeyData keyData);

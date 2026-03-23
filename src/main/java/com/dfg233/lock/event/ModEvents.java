@@ -99,8 +99,18 @@ public class ModEvents {
                     // 执行开/上锁逻辑 (tryInteract 内部应处理好 syncToClients 和音效)
                     InteractionResult result = lock.tryInteract(player, level, actualPos, stack);
 
-                    if (result == InteractionResult.FAIL && data.isLocked()) {
-                        if (!level.isClientSide()) {
+                    if (!level.isClientSide() && result == InteractionResult.FAIL) {
+                        // 判断是否拿着钥匙物品
+                        boolean isHoldingKey = stack.getItem() instanceof com.dfg233.lock.item.custom.key.KeyItem;
+
+                        if (isHoldingKey) {
+                            // 场景 1：拿着钥匙但失败了 -> 提示钥匙错误
+                            player.displayClientMessage(
+                                    Component.translatable("message.lock.wrong_key").withStyle(ChatFormatting.DARK_RED),
+                                    true
+                            );
+                        } else if (data.isLocked()) {
+                            // 场景 2：没拿钥匙且方块已锁定 -> 提示已上锁
                             player.displayClientMessage(
                                     Component.translatable("message.lock.is_locked").withStyle(ChatFormatting.RED),
                                     true
