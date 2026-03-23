@@ -99,6 +99,7 @@ public class ModEvents {
                     // 执行开/上锁逻辑 (tryInteract 内部应处理好 syncToClients 和音效)
                     InteractionResult result = lock.tryInteract(player, level, actualPos, stack);
 
+<<<<<<< HEAD
                     if (result == InteractionResult.FAIL && data.isLocked()) {
                         if (!level.isClientSide()) {
                             player.displayClientMessage(
@@ -108,6 +109,8 @@ public class ModEvents {
                         }
                     }
 
+=======
+>>>>>>> 47a123de233232632a5a5979c61a778cd1a924aa
                     // 确保结果同步：如果业务逻辑判定为成功或失败（非PASS），再次强制取消事件
                     if (result != InteractionResult.PASS) {
                         event.setCanceled(true);
