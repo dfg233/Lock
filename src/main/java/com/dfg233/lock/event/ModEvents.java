@@ -53,6 +53,16 @@ public class ModEvents {
             }
         }
 
+        if (!isLockedClient && stack.isEmpty() &&player.isShiftKeyDown()) {
+            event.setCanceled(true);
+            event.setResult(Event.Result.DENY);
+            event.setCancellationResult(InteractionResult.sidedSuccess(level.isClientSide()));
+
+            if (level.isClientSide()) {
+                return;
+            }
+        }
+
         // --- 2. 业务处理 (服务端逻辑核心) ---
         // 注意：由于上面可能 Canceled 了事件，但 Forge 依然允许在服务端运行后续代码
         // 我们需要通过 LockLevelData 进行实际的逻辑校验
@@ -91,7 +101,6 @@ public class ModEvents {
                     event.setCanceled(true);
                     event.setResult(Event.Result.DENY);
                     event.setCancellationResult(InteractionResult.sidedSuccess(level.isClientSide()));
-                    return;
                 }
 
                 AbstractLock lock = AbstractLock.create(data);
