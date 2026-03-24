@@ -11,6 +11,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 public class MechanicalLock extends AbstractLock {
     public MechanicalLock(LockData data) {
@@ -54,5 +57,19 @@ public class MechanicalLock extends AbstractLock {
         }else {
             PlayUnLockSound.play(level, pos, this.lockData);
         }
+    }
+
+    @Override
+    protected boolean canLock(Level level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        // 如果是门，必须处于关闭状态才能上锁
+        if (state.getBlock() instanceof DoorBlock) {
+            // 检查门的 OPEN 属性，如果门是开着的则不能上锁
+            if (state.hasProperty(BlockStateProperties.OPEN)) {
+                return !state.getValue(BlockStateProperties.OPEN);
+            }
+        }
+        // 其他方块默认可以上锁
+        return true;
     }
 }

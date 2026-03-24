@@ -107,6 +107,7 @@ public class ModEvents {
 
                         if (isHoldingKey) {
                             // 场景 1：拿着钥匙但失败了 -> 提示钥匙错误
+                            // 注意：canLock 失败会返回 SUCCESS（已自行提示），不会走到这里
                             player.displayClientMessage(
                                     Component.translatable("message.lock.wrong_key").withStyle(ChatFormatting.DARK_RED),
                                     true

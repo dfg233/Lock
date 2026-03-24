@@ -25,5 +25,6 @@
 
   "tooltip.lock.type.mechanical": "Mechanical",
   "message.lock.removed": "Lock removed",
-  "message.lock.is_locked": "Bolck has been locked"
+  "message.lock.is_locked": "Bolck has been locked",
+  "message.lock.cannot_lock_state": "Cannot lock state"
 }

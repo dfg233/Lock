@@ -45,6 +45,15 @@ public abstract class AbstractLock {
                     return InteractionResult.sidedSuccess(level.isClientSide());
                 } else {
                     // 上锁逻辑
+                    // 检查当前方块状态是否允许上锁（如门必须关闭才能上锁）
+                    if (!canLock(level, pos)) {
+                        if (!level.isClientSide()) {
+                            player.displayClientMessage(Component.translatable("message.lock.cannot_lock_state").withStyle(ChatFormatting.YELLOW), true);
+                            onVerifyFailed(level, pos); // 播放失败音效
+                        }
+                        // 返回 SUCCESS 表示交互已被处理（已提示用户），但不上锁
+                        return InteractionResult.sidedSuccess(level.isClientSide());
+                    }
                     // 注意：这里返回 SUCCESS 会触发 ModEvents 的拦截，从而阻止门被关上
                     ClientLockCache.updateStatus(pos, true);
                     lockData.setLocked(true);
@@ -98,10 +107,14 @@ public abstract class AbstractLock {
         }
     }
 
-    // 去掉了关于门的 canLock 判断，箱子默认永远可以上锁
-    protected boolean canLock(Level level, BlockPos pos) {
-        return true;
-    }
+    /**
+     * 检查当前方块状态是否允许上锁
+     * 子类必须实现此方法以定义上锁条件
+     * @param level 世界
+     * @param pos 方块位置
+     * @return 如果允许上锁返回true
+     */
+    protected abstract boolean canLock(Level level, BlockPos pos);
 
     /**
      * 客户端调用：自定义渲染逻辑
