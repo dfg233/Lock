@@ -71,30 +71,24 @@ public class ModEvents {
             LockData data = worldData.getLock(actualPos);
             if (data != null) {
 
-                // 条件：潜行 + 空手 + 锁处于开启状态
-                if (player.isShiftKeyDown() && stack.isEmpty() && !data.isLocked()) {
+                // 使用锁类的拆卸逻辑
+                AbstractLock lock = AbstractLock.create(data);
+                if (lock != null && lock.canRemove(player, stack)) {
                     if (!level.isClientSide()) {
-                        AbstractLock lock = AbstractLock.create(data);
-                        if (lock != null) {
-                            // 1. 生成带有原有 NBT 数据的锁物品
-                            ItemStack dropStack = lock.getAsStack();
-                            CompoundTag nbt = new CompoundTag();
-                            data.writeToNBT(nbt);
-                            dropStack.getOrCreateTag().put("LockData", nbt);
+                        // 1. 执行拆卸获取锁物品
+                        ItemStack dropStack = lock.onRemove();
 
-                            // 2. 核心修改：尝试放入玩家背包
-                            // 如果背包满了，addItem 会返回 false，此时再执行掉落逻辑作为兜底
-                            if (!player.getInventory().add(dropStack)) {
-                                Block.popResource(level, actualPos, dropStack);
-                            }
-
-                            // 3. 从世界中移除并通知客户端
-                            worldData.removeLock(actualPos);
-                            ModMessages.sendToClients(new S2CSyncLockPacket(actualPos, new CompoundTag()));
-
-                            // 4. 反馈
-                            player.displayClientMessage(Component.translatable("message.lock.removed").withStyle(ChatFormatting.YELLOW), true);
+                        // 2. 尝试放入玩家背包，满了则掉落
+                        if (!player.getInventory().add(dropStack)) {
+                            Block.popResource(level, actualPos, dropStack);
                         }
+
+                        // 3. 从世界中移除并通知客户端
+                        worldData.removeLock(actualPos);
+                        ModMessages.sendToClients(new S2CSyncLockPacket(actualPos, new CompoundTag()));
+
+                        // 4. 反馈
+                        player.displayClientMessage(Component.translatable("message.lock.removed").withStyle(ChatFormatting.YELLOW), true);
                     }
 
                     // 拦截后续交互逻辑
@@ -103,7 +97,6 @@ public class ModEvents {
                     event.setCancellationResult(InteractionResult.sidedSuccess(level.isClientSide()));
                 }
 
-                AbstractLock lock = AbstractLock.create(data);
                 if (lock != null) {
                     // 执行开/上锁逻辑 (tryInteract 内部应处理好 syncToClients 和音效)
                     InteractionResult result = lock.tryInteract(player, level, actualPos, stack);
@@ -149,22 +142,16 @@ public class ModEvents {
             LockData data = worldData.getLock(actualPos);
 
             if (data != null) {
-                // 1. 使用工厂方法创建对应的锁逻辑对象
                 AbstractLock lock = AbstractLock.create(data);
                 if (lock != null) {
-                    // 2. 动态获取对应的物品堆叠（不再硬编码 Mechanical）
-                    ItemStack dropStack = lock.getAsStack();
+                    // 1. 执行拆卸获取锁物品
+                    ItemStack dropStack = lock.onRemove();
 
-                    // 3. 将现有的 NBT 数据（UUID、锁定状态、配置等）完整写入物品
-                    CompoundTag nbt = new CompoundTag();
-                    data.writeToNBT(nbt);
-                    dropStack.getOrCreateTag().put("LockData", nbt);
-
-                    // 4. 从世界数据中移除并同步
+                    // 2. 从世界数据中移除并同步
                     worldData.removeLock(actualPos);
                     ModMessages.sendToClients(new S2CSyncLockPacket(actualPos, new CompoundTag()));
 
-                    // 5. 在破坏位置弹出对应的锁物品
+                    // 3. 在破坏位置弹出对应的锁物品
                     Block.popResource(level, clickedPos, dropStack);
                 }
             }

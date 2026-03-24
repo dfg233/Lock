@@ -121,4 +121,29 @@ public abstract class AbstractLock {
     public abstract ItemStack getAsStack();
     protected abstract void onVerifyFailed(Level level, BlockPos pos);
     protected abstract KeyData getKeyDataFromStack(ItemStack stack);
+
+    /**
+     * 检查是否可以拆卸此锁
+     * 子类可以重写以添加自定义拆卸条件（如需要特定工具、特定权限等）
+     * @param player 尝试拆卸的玩家
+     * @param stack 玩家手持物品
+     * @return 如果可以拆卸返回true
+     */
+    public boolean canRemove(Player player, ItemStack stack) {
+        // 默认逻辑：潜行 + 空手 + 锁处于开启状态
+        return player.isShiftKeyDown() && stack.isEmpty() && !lockData.isLocked();
+    }
+
+    /**
+     * 执行拆卸操作，返回拆卸后的锁物品
+     * 子类可以重写以自定义掉落物（如损坏的锁、不同物品等）
+     * @return 包含锁数据的物品堆
+     */
+    public ItemStack onRemove() {
+        ItemStack dropStack = getAsStack();
+        CompoundTag nbt = new CompoundTag();
+        lockData.writeToNBT(nbt);
+        dropStack.getOrCreateTag().put("LockData", nbt);
+        return dropStack;
+    }
 }
