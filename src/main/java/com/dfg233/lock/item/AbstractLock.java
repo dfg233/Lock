@@ -7,9 +7,16 @@ import com.dfg233.lock.item.custom.lock.MechanicalLock;
 import com.dfg233.lock.network.ModMessages;
 import com.dfg233.lock.network.S2CSyncLockPacket;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
@@ -17,6 +24,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.UUID;
 
@@ -38,7 +48,7 @@ public abstract class AbstractLock {
                 if (lockData.isLocked()) {
                     // 解锁逻辑
                     lockData.setLocked(false);
-                    ClientLockCache.updateStatus(pos, false);
+                    ClientLockCache.updateStatus(pos, lockData);
                     onStateChanged(level, pos, false);
                     syncToClients(level, pos);
                     player.displayClientMessage(Component.translatable("message.lock.unlocked").withStyle(ChatFormatting.GREEN),true);
@@ -55,7 +65,7 @@ public abstract class AbstractLock {
                         return InteractionResult.sidedSuccess(level.isClientSide());
                     }
                     // 注意：这里返回 SUCCESS 会触发 ModEvents 的拦截，从而阻止门被关上
-                    ClientLockCache.updateStatus(pos, true);
+                    ClientLockCache.updateStatus(pos, lockData);
                     lockData.setLocked(true);
                     onStateChanged(level, pos, true);
                     syncToClients(level, pos);
@@ -158,5 +168,51 @@ public abstract class AbstractLock {
         lockData.writeToNBT(nbt);
         dropStack.getOrCreateTag().put("LockData", nbt);
         return dropStack;
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public void render(PoseStack poseStack, MultiBufferSource buffer, Level level, BlockPos pos, BlockState state, int packedLight) {
+        // 1. 获取模型（默认逻辑：子类可根据 isLocked 返回不同模型）
+        BakedModel model = getCustomModel(lockData.isLocked());
+        if (model == null) return;
+
+        poseStack.pushPose();
+
+        // 2. 默认变换：根据方块朝向自动贴合表面
+        applyDefaultTransforms(poseStack, state);
+
+        // 3. 执行渲染
+        VertexConsumer vertexConsumer = buffer.getBuffer(ItemBlockRenderTypes.getRenderType(getAsStack(), true));
+        Minecraft.getInstance().getItemRenderer().renderModelLists(model, getAsStack(), packedLight, OverlayTexture.NO_OVERLAY, poseStack, vertexConsumer);
+
+        poseStack.popPose();
+    }
+
+    /**
+     * 子类重写：返回具体的 BakedModel。若不渲染则返回 null。
+     * 默认使用物品本身的物理模型。
+     */
+    @OnlyIn(Dist.CLIENT)
+    protected BakedModel getCustomModel(boolean isLocked) {
+        return Minecraft.getInstance().getItemRenderer().getItemModelShaper().getItemModel(this.getAsStack());
+    }
+
+    /**
+     * 默认变换：将锁放置在方块面向玩家的那一面的中心，稍微外移避免深度冲突
+     */
+    @OnlyIn(Dist.CLIENT)
+    protected void applyDefaultTransforms(PoseStack poseStack, BlockState state) {
+        poseStack.translate(0.5, 0.5, 0.5);
+
+        // 处理水平朝向
+        if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
+            Direction dir = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
+            float angle = -dir.toYRot();
+            poseStack.mulPose(Axis.YP.rotationDegrees(angle));
+        }
+
+        // 稍微往方块表面外挪一点 (0.5 + 0.01)，缩小模型
+        poseStack.translate(0, 0, -0.51);
+        poseStack.scale(0.4f, 0.4f, 0.4f);
     }
 }

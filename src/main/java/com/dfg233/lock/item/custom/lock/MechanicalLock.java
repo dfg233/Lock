@@ -7,6 +7,7 @@ import com.dfg233.lock.item.ModItems;
 import com.dfg233.lock.item.custom.key.KeyItem;
 import com.dfg233.lock.sounds.PlayLockedSound;
 import com.dfg233.lock.sounds.PlayUnLockSound;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -14,6 +15,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class MechanicalLock extends AbstractLock {
     public MechanicalLock(LockData data) {
@@ -71,5 +74,16 @@ public class MechanicalLock extends AbstractLock {
         }
         // 其他方块默认可以上锁
         return true;
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    protected BakedModel getCustomModel(boolean isLocked) {
+        if (isLocked) {
+            // 如果有闭锁状态的特殊模型，在这里返回
+            // return Minecraft.getInstance().getModelManager().getModel(CLOSED_MODEL_LOCATION);
+        }
+        // 默认回退到父类逻辑（物品模型）
+        return super.getCustomModel(isLocked);
     }
 }

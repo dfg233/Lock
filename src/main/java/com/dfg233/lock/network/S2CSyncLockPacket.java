@@ -36,7 +36,8 @@ public class S2CSyncLockPacket {
             } else {
                 LockData data = new LockData();
                 data.readFromNBT(tag);
-                ClientLockCache.updateStatus(pos, data.isLocked());
+                // 修改点：传入 data 而不是 data.isLocked()
+                ClientLockCache.updateStatus(pos, data);
             }
         });
         context.setPacketHandled(true);
