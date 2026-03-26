@@ -46,12 +46,13 @@ public class KeyDuplicatorMenu extends AbstractContainerMenu {
         addPlayerHotbar(inv);
 
         this.blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER).ifPresent(handler -> {
-            // 模板槽：上方中间
-            this.addSlot(new SlotItemHandler(handler, TEMPLATE_SLOT, 44, 22));
-            // 材料槽：模板槽右侧
-            this.addSlot(new SlotItemHandler(handler, MATERIAL_SLOT, 80, 22));
-            // 输出槽：下方
-            this.addSlot(new SlotItemHandler(handler, OUTPUT_SLOT, 116, 40) {
+            // 铁砧式排列：左(模板) + 中(材料) -> 右(输出)
+            // 模板槽：左侧（放锁或钥匙）
+            this.addSlot(new SlotItemHandler(handler, TEMPLATE_SLOT, 27, 47));
+            // 材料槽：中间（放空白钥匙）
+            this.addSlot(new SlotItemHandler(handler, MATERIAL_SLOT, 76, 47));
+            // 输出槽：右侧（产出复制的钥匙）
+            this.addSlot(new SlotItemHandler(handler, OUTPUT_SLOT, 134, 47) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
                     return false;  // 输出槽不允许放入物品

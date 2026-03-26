@@ -268,7 +268,7 @@ public class KeyDuplicatorBlockEntity extends BlockEntity implements MenuProvide
         if (template.getItem() instanceof KeyItem keyItem) {
             return keyItem.getKeyType();
         }
-        // TODO: 如果是锁物品，返回对应的钥匙类型
+        //如果是锁物品，返回对应的钥匙类型
         return "mechanical"; // 默认类型
     }
 
