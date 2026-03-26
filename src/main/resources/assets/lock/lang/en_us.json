@@ -2,6 +2,8 @@
   "item.lock.icon": "Lock Icon",
   "item.lock.mechanical_key": "Mechanical Key",
   "item.lock.mechanical_lock": "Mechanical Lock",
+  "item.lock.mechanical_key_blank": "Blank Mechanical Key",
+  "block.lock.key_duplicator": "Key Duplicator",
 
   "item_group.lock_tab": "Lock",
   "item_group.key_tab": "Key",

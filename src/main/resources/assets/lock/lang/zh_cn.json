@@ -2,6 +2,13 @@
   "item.lock.icon": "锁图标",
   "item.lock.mechanical_key": "机械钥匙",
   "item.lock.mechanical_lock": "机械锁",
+  "item.lock.mechanical_key_blank": "空白机械钥匙",
+  "block.lock.key_duplicator": "钥匙复制台",
+
+  "tooltip.lock.key_type": "钥匙类型",
+  "tooltip.lock.key_id": "钥匙ID",
+  "tooltip.lock.key_blank": "空白钥匙",
+  "tooltip.lock.type.mechanical": "机械",
 
   "lock_tab": "锁"
 }

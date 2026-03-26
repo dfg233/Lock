@@ -1,12 +1,16 @@
 package com.dfg233.lock;
 
 import com.dfg233.lock.block.ModBlocks;
+import com.dfg233.lock.block.entity.ModBlockEntities;
 import com.dfg233.lock.item.ModCreativeModeTabs;
 import com.dfg233.lock.item.ModItems;
 import com.dfg233.lock.network.ModMessages;
+import com.dfg233.lock.screen.KeyDuplicatorScreen;
+import com.dfg233.lock.screen.ModMenuTypes;
 import com.dfg233.lock.sounds.ModSounds;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
@@ -39,6 +43,8 @@ public class Lock {
         ModItems.register(modEventBus);
         ModCreativeModeTabs.register(modEventBus);
         ModBlocks.register(modEventBus);
+        ModBlockEntities.register(modEventBus);
+        ModMenuTypes.register(modEventBus);
         ModSounds.register(modEventBus);
         ModMessages.register();
 
@@ -77,6 +83,11 @@ public class Lock {
             // Some client setup code
             LOGGER.info("HELLO FROM CLIENT SETUP");
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+
+            // 注册钥匙复制台屏幕
+            event.enqueueWork(() -> {
+                MenuScreens.register(ModMenuTypes.KEY_DUPLICATOR.get(), KeyDuplicatorScreen::new);
+            });
         }
     }
 }

@@ -20,6 +20,7 @@ public class ModCreativeModeTabs {
                     .displayItems((pParameters,pOutput) ->{
                         pOutput.accept(ModItems.MECHANICAL_LOCK.get());
                         pOutput.accept(ModItems.MECHANICAL_KEY.get());
+                        pOutput.accept(ModItems.KEY_DUPLICATOR_ITEM.get());
                     }).build());
 
     public static void register(IEventBus eventBus) {
