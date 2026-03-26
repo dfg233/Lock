@@ -84,8 +84,8 @@ public class MechanicalLock extends AbstractLock {
     @Override
     @OnlyIn(Dist.CLIENT)
     protected BakedModel getCustomModel(boolean isLocked) {
-        if (isLocked) {
-            // 如果有闭锁状态的特殊模型，在这里返回
+        if (!isLocked) {
+            // 如果有开锁状态的特殊模型，在这里返回
             // return Minecraft.getInstance().getModelManager().getModel(CLOSED_MODEL_LOCATION);
         }
         // 默认回退到父类逻辑（物品模型）
@@ -115,6 +115,10 @@ public class MechanicalLock extends AbstractLock {
             poseStack.translate(handleX, 0.5f, -0.5f);  // (左右, 上下高度, 前后突出)
 //            poseStack.scale(0.5f, 0.5f, 0.5f);         // 适当缩小
 
+            // 3. 适配门的开闭状态
+            // 门打开时，锁需要跟随门旋转
+            applyDoorOpenRotation(poseStack, state, isLeftHinge);
+
         } else if (state.getBlock() instanceof ChestBlock) {
             // ==================== 箱子 (Chest) 默认位置 ====================
             // 箱子是1格高，渲染在正面中央
@@ -127,5 +131,40 @@ public class MechanicalLock extends AbstractLock {
 //            poseStack.translate(0.5f, 0.5f, 0.1f);   // (中心, 中心高度, 前面突出)
 //            poseStack.scale(0.4f, 0.4f, 0.4f);
         }
+    }
+
+    /**
+     * 应用门打开时的旋转
+     * 当门打开时，锁需要跟随门一起旋转
+     *
+     * @param poseStack 变换栈
+     * @param state 门方块状态
+     * @param isLeftHinge 是否为左铰链门
+     */
+    @OnlyIn(Dist.CLIENT)
+    private void applyDoorOpenRotation(PoseStack poseStack, BlockState state, boolean isLeftHinge) {
+        // 检查门是否处于打开状态
+        if (!state.hasProperty(BlockStateProperties.OPEN)) {
+            return;
+        }
+
+        boolean isOpen = state.getValue(BlockStateProperties.OPEN);
+        if (!isOpen) {
+            return;  // 门关闭时不需要额外旋转
+        }
+
+        //使模型回到方块中心
+        float handleX = isLeftHinge ? 0.25f : -0.25f;
+        poseStack.translate(handleX, 0.0f, 0.5f);
+
+        poseStack.translate(0.5, 0.0, 0.5);
+        float rotationAngle = isLeftHinge ? 90.0f : -90.0f;
+        poseStack.mulPose(Axis.YP.rotationDegrees(rotationAngle));
+        poseStack.translate(-0.5, 0.0, -0.5);
+
+        //移动到门把手位置
+        handleX = isLeftHinge ? -0.25f : 0.25f;
+        poseStack.translate(handleX, 0.0, 0.3);
+
     }
 }

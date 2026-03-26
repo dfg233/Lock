@@ -214,7 +214,7 @@ public abstract class AbstractLock {
     }
 
     /**
-     * 渲染位置初始化：执行"平移-旋转-平移"标准流程。
+     * 原地旋转。
      * 将旋转轴设置在方块中心水平位置 (0.5, y, 0.5)，使模型围绕中心垂直轴旋转。
      *
      * 子类应在重写方法中首先调用此方法，然后进行自定义位置调整。
@@ -254,7 +254,6 @@ public abstract class AbstractLock {
 
     /**
      * 应用渲染位置变换。子类可重写此方法来自定义渲染位置。
-     *
      * 默认实现仅调用 initRenderPosition 进行标准初始化。
      * 子类重写时建议首先调用 super.applyRenderPosition() 或 initRenderPosition()，
      * 然后添加自定义的位置调整。
