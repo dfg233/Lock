@@ -11,16 +11,22 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.event.level.ChunkWatchEvent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+
+import java.util.Map;
 
 import static com.dfg233.lock.Utils.LockUtils.getActualLockPos;
 
@@ -176,6 +182,35 @@ public class ModEvents {
                     // 提示玩家合并后的区域已受锁保护
                     player.displayClientMessage(Component.translatable("message.lock.merged_protection").withStyle(ChatFormatting.GRAY), true);
                 }
+            }
+        }
+    }
+
+    /**
+     * 当玩家进入新区块时，同步该区块内的锁数据给客户端
+     * 这样可以避免一次性发送所有锁数据，减少网络负载
+     */
+    @SubscribeEvent
+    public static void onChunkWatch(ChunkWatchEvent.Watch event) {
+        // 只在服务端执行
+        ServerPlayer player = event.getPlayer();
+        Level level = player.level();
+
+        LockLevelData worldData = LockLevelData.get(level);
+        if (worldData == null) return;
+
+        ChunkPos chunkPos = event.getPos();
+
+        // 遍历该区块内的所有锁，发送同步包给玩家
+        for (Map.Entry<BlockPos, LockData> entry : worldData.getAllLocks()) {
+            BlockPos pos = entry.getKey();
+
+            // 检查锁是否在当前区块内
+            if (chunkPos.equals(new ChunkPos(pos))) {
+                LockData data = entry.getValue();
+                CompoundTag nbt = new CompoundTag();
+                data.writeToNBT(nbt);
+                ModMessages.sendToPlayer(new S2CSyncLockPacket(pos, nbt), player);
             }
         }
     }

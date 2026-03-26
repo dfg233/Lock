@@ -2,6 +2,7 @@ package com.dfg233.lock.network;
 
 import com.dfg233.lock.Lock;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
@@ -31,7 +32,12 @@ public class ModMessages {
     }
 
     public static <MSG> void sendToClients(MSG message) {
-        // 这里需要实现发送给附近所有玩家的逻辑
+        // 发送给所有客户端
         INSTANCE.send(PacketDistributor.ALL.noArg(), message);
+    }
+
+    public static <MSG> void sendToPlayer(MSG message, ServerPlayer player) {
+        // 发送给特定玩家
+        INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), message);
     }
 }

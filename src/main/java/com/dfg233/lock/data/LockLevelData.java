@@ -11,6 +11,7 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class LockLevelData extends SavedData {
     private final Map<BlockPos, LockData> locks = new HashMap<>();
@@ -34,6 +35,22 @@ public class LockLevelData extends SavedData {
 
     public LockData getLock(BlockPos pos) {
         return locks.get(pos);
+    }
+
+    /**
+     * 获取所有锁的位置集合
+     * @return 所有锁的 BlockPos 集合
+     */
+    public Set<BlockPos> getAllLockPositions() {
+        return locks.keySet();
+    }
+
+    /**
+     * 获取所有锁的条目（位置和数据的映射）
+     * @return 锁的 Map 条目集合
+     */
+    public Set<Map.Entry<BlockPos, LockData>> getAllLocks() {
+        return locks.entrySet();
     }
 
     public static LockLevelData load(CompoundTag nbt) {
