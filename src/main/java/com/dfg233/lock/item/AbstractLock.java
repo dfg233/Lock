@@ -172,20 +172,36 @@ public abstract class AbstractLock {
 
     @OnlyIn(Dist.CLIENT)
     public void render(PoseStack poseStack, MultiBufferSource buffer, Level level, BlockPos pos, BlockState state, int packedLight) {
+        // 0. 检查是否应该渲染
+        if (!shouldRender(state)) {
+            return;
+        }
+
         // 1. 获取模型（默认逻辑：子类可根据 isLocked 返回不同模型）
         BakedModel model = getCustomModel(lockData.isLocked());
         if (model == null) return;
 
         poseStack.pushPose();
 
-        // 2. 默认变换：根据方块朝向自动贴合表面
-        applyDefaultTransforms(poseStack, state);
+        // 2. 应用渲染位置变换（子类可自定义）
+        applyRenderPosition(poseStack, state);
 
         // 3. 执行渲染
         VertexConsumer vertexConsumer = buffer.getBuffer(ItemBlockRenderTypes.getRenderType(getAsStack(), true));
         Minecraft.getInstance().getItemRenderer().renderModelLists(model, getAsStack(), packedLight, OverlayTexture.NO_OVERLAY, poseStack, vertexConsumer);
 
         poseStack.popPose();
+    }
+
+    /**
+     * 子类重写：决定是否渲染此锁。
+     * 默认返回 true（总是渲染）。
+     * @param state 方块状态
+     * @return 如果应该渲染返回 true
+     */
+    @OnlyIn(Dist.CLIENT)
+    protected boolean shouldRender(BlockState state) {
+        return true;
     }
 
     /**
@@ -198,21 +214,57 @@ public abstract class AbstractLock {
     }
 
     /**
-     * 默认变换：将锁放置在方块面向玩家的那一面的中心，稍微外移避免深度冲突
+     * 渲染位置初始化：执行"平移-旋转-平移"标准流程。
+     * 将旋转轴设置在方块中心水平位置 (0.5, y, 0.5)，使模型围绕中心垂直轴旋转。
+     *
+     * 子类应在重写方法中首先调用此方法，然后进行自定义位置调整。
+     *
+     * @param poseStack 变换栈
+     * @param state 方块状态
      */
     @OnlyIn(Dist.CLIENT)
-    protected void applyDefaultTransforms(PoseStack poseStack, BlockState state) {
-        poseStack.translate(0.5, 0.5, 0.5);
+    protected void initRenderPosition(PoseStack poseStack, BlockState state) {
+        // 步骤1：将模型平移，使方块中心 (0.5, 0, 0.5) 成为新的旋转轴
+        poseStack.translate(0.5, 0, 0.5);
 
-        // 处理水平朝向
+        // 步骤2：应用旋转变换，使锁朝向与方块正面一致
+        applyHorizontalRotation(poseStack, state);
+
+        // 步骤3：将模型平移回原位置（相对于新的旋转轴）
+        poseStack.translate(-0.5, 0, -0.5);
+    }
+
+    /**
+     * 应用水平方向旋转。
+     * 使锁的朝向与方块的 HORIZONTAL_FACING 属性一致。
+     * 旋转轴为当前坐标系原点 (0, 0, 0)。
+     *
+     * @param poseStack 变换栈
+     * @param state 方块状态
+     */
+    @OnlyIn(Dist.CLIENT)
+    protected void applyHorizontalRotation(PoseStack poseStack, BlockState state) {
         if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
             Direction dir = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
+            // 转换为旋转角度（负号是因为 Minecraft 的旋转方向与常规相反）
             float angle = -dir.toYRot();
             poseStack.mulPose(Axis.YP.rotationDegrees(angle));
         }
+    }
 
-        // 稍微往方块表面外挪一点 (0.5 + 0.01)，缩小模型
-        poseStack.translate(0, 0, -0.51);
-        poseStack.scale(0.4f, 0.4f, 0.4f);
+    /**
+     * 应用渲染位置变换。子类可重写此方法来自定义渲染位置。
+     *
+     * 默认实现仅调用 initRenderPosition 进行标准初始化。
+     * 子类重写时建议首先调用 super.applyRenderPosition() 或 initRenderPosition()，
+     * 然后添加自定义的位置调整。
+     *
+     * @param poseStack 变换栈
+     * @param state 方块状态
+     */
+    @OnlyIn(Dist.CLIENT)
+    protected void applyRenderPosition(PoseStack poseStack, BlockState state) {
+        // 默认：执行标准初始化（平移-旋转-平移）
+        initRenderPosition(poseStack, state);
     }
 }
